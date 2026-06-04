@@ -1,0 +1,674 @@
+{
+  "name": "Book Cover Validation System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1_QBiB7gns_q90nScirQK5XGFQHHT-Lk8",
+          "mode": "list",
+          "cachedResultName": "Book Cover Uploads",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1_QBiB7gns_q90nScirQK5XGFQHHT-Lk8"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "ed8e57e5-b6ac-4209-8cbe-59bd9afbb0f9",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "q4kFMqxwcKLsRBkR",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        -16
+      ],
+      "id": "29f19eb0-55e9-4b54-b037-d9fa60db40d9",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "q4kFMqxwcKLsRBkR",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "text": "You are a Senior Book Cover Validation Specialist for BookLeaf Publishing.\n\nYour responsibility is to perform strict quality control on uploaded book covers and identify any layout violations that would require human review.\n\nCONTEXT\n\nBookLeaf Publishing receives book covers for publication review.\n\nYour primary objective is to detect layout issues, especially violations involving the reserved award badge area at the bottom of the front cover.\n\nVALIDATION RULES\n\nFRONT COVER DIMENSIONS\n- Front cover size: 5 x 8 inches\n\nSAFE AREA REQUIREMENTS\n- Minimum 3mm margin from left edge\n- Minimum 3mm margin from right edge\n- Minimum 3mm margin from top edge\n- Bottom 9mm of the front cover is a protected reserved area\n\nRESERVED BADGE AREA\n\nThe bottom 9mm area is reserved for the:\n\n\"Winner of 21st Century Emily Dickinson Award\"\n\nemblem/badge.\n\nThis area must remain clear.\n\nAny title text, subtitle text, author name, quote, tagline, decorative text, graphic element, design element, logo, or visual object placed within or conflicting with this reserved zone is considered a layout violation.\n\nAUTHOR NAME RULES\n\n- Author name may appear anywhere on the front cover.\n- Author name must remain within safe margins.\n- Author name must not conflict with the reserved badge area.\n- Author name must remain clearly readable.\n- Author name should not appear excessively close to cover borders.\n\nADDITIONAL VALIDATIONS\n\nInspect for:\n\n1. Award badge area conflicts\n2. Author name placement conflicts\n3. Text positioned too close to borders\n4. Text alignment issues\n5. Cropped text\n6. Crowded layouts\n7. Text readability problems\n8. Blurry text\n9. Pixelated images\n10. Low-resolution artwork\n11. Visual quality concerns\n12. Design elements extending beyond safe margins\n\nISBN EXTRACTION\n\nSearch the entire uploaded cover for an ISBN.\nISBN is typically located on the back cover beneath or near the barcode.\nExtract the complete ISBN-13 number when visible.\nReturn only digits.\nIf no ISBN is visible or readable, return \"UNKNOWN\".\nDo not guess or fabricate an ISBN.\n\nSEVERITY DEFINITIONS\n\nCRITICAL\n- Text conflicts involving the reserved badge area\n- Author name conflicts involving the reserved badge area\n\nHIGH\n- Safe margin violations\n- Cropped text\n- Major readability issues\n\nMEDIUM\n- Alignment inconsistencies\n- Layout balance concerns\n\nLOW\n- Minor visual improvements\n\nSTATUS RULES\n\nPASS\nReturn PASS only if:\n- No badge-area conflicts exist\n- No author placement conflicts exist\n- No spacing violations exist\n- Text is readable\n- Cover quality is acceptable\n\nREVIEW NEEDED\nReturn REVIEW NEEDED if:\n- Any issue is detected\n- Human verification is advisable\n- Confidence is below 90%\n\nANALYSIS INSTRUCTIONS\n\nCarefully inspect:\n- Cover text\n- Author name location\n- Border spacing\n- Visual hierarchy\n- Overall print readiness\n\nProvide practical publishing-focused feedback.\n\nOUTPUT REQUIREMENTS\n\nReturn ONLY valid JSON.\n\nDo not use markdown.\nDo not wrap output inside code blocks.\nDo not include explanations outside JSON.\n\nReturn exactly this structure:\n\n{\n \"isbn\": \"9781234567890123\",\n  \"status\": \"PASS or REVIEW NEEDED\",\n  \"confidence\": 0,\n  \"severity\": \"CRITICAL|HIGH|MEDIUM|LOW\",\n  \"issues\": [\n    \"Issue 1\",\n    \"Issue 2\"\n  ],\n  \"instructions\": \"Detailed step-by-step correction instructions.\",\n  \"summary\": \"Short validation summary.\"\n}",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        -16
+      ],
+      "id": "7c42beb1-3563-41c6-be16-29fd4c260b53",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json[0].content[0].text;\n\n// Remove markdown code fences\nconst cleanText = text\n  .replace(/```json/g, '')\n  .replace(/```/g, '')\n  .trim();\n\nlet result;\n\ntry {\n  result = JSON.parse(cleanText);\n} catch (error) {\n  result = {\n    status: \"REVIEW NEEDED\",\n    confidence: 50,\n    ISBN:1236746,\n    severity: \"HIGH\",\n    issues: [\"Failed to parse AI response\"],\n    instructions: \"Manual review required\",\n    summary: \"OpenAI response parsing failed.\"\n  };\n}\n\nreturn [{\n  json: result\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -16
+      ],
+      "id": "a696c6e7-b088-44ad-bc93-4d9de87dd34e",
+      "name": "Parse the clean text"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appn1m2ehMsjzigAg",
+          "mode": "list",
+          "cachedResultName": "Book Cover Validation System",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblZ6I6n42pFnH3l0",
+          "mode": "list",
+          "cachedResultName": "Cover Reviews",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg/tblZ6I6n42pFnH3l0"
+        },
+        "filterByFormula": "={ISBN}='{{ $json.isbn }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -16
+      ],
+      "id": "9110ff65-d683-4ed9-b772-fcef32dff17e",
+      "name": "Filter Result",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yOc7c0Vuymdunqdp",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const searchResults = $input.all();\n\nconst count =\n  searchResults.length === 1 &&\n  Object.keys(searchResults[0].json).length === 0\n    ? 0\n    : searchResults.length;\n\nconst originalData = $('Parse the clean text').first().json;\n\nreturn [{\n  json: {\n    ...originalData,\n    submissionNumber: count + 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -16
+      ],
+      "id": "dcdb9be5-4a59-47f3-a646-f31549d0a51d",
+      "name": "Count_Submission"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appn1m2ehMsjzigAg",
+          "mode": "list",
+          "cachedResultName": "Book Cover Validation System",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblZ6I6n42pFnH3l0",
+          "mode": "list",
+          "cachedResultName": "Cover Reviews",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg/tblZ6I6n42pFnH3l0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ISBN": "={{ $json.isbn }}",
+            "File Name": "={{ $('Google Drive Trigger').item.json.originalFilename }}",
+            "Timestamp": "={{$now}}",
+            "Status": "={{ $json.status }}",
+            "Confidence": "={{ $('Parse the clean text').item.json.confidence }}",
+            "Issues": "={{ $('Parse the clean text').item.json.issues.join('\\n') }}",
+            "Correction Instructions": "={{ $('Parse the clean text').item.json.instructions }}",
+            "File URL": "={{ $('Google Drive Trigger').item.json.thumbnailLink }}",
+            "Submission Number": "={{ $json.submissionNumber }}",
+            "Summary": "={{ $('Parse the clean text').item.json.summary }}",
+            "Severity": "={{ $('Parse the clean text').item.json.severity }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ISBN",
+              "displayName": "ISBN",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Confidence",
+              "displayName": "Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Issues",
+              "displayName": "Issues",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Correction Instructions",
+              "displayName": "Correction Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File URL",
+              "displayName": "File URL",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Submission Number",
+              "displayName": "Submission Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Review Status",
+              "displayName": "Review Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        -16
+      ],
+      "id": "d317071f-cab8-4b75-b9d9-9a7e2863cccb",
+      "name": "Storing Data",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yOc7c0Vuymdunqdp",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4ffc7cf5-4a39-462f-8f81-c01f1496e2be",
+              "leftValue": "={{ $json.fields.Status }}",
+              "rightValue": "PASS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        -16
+      ],
+      "id": "2f66692d-1a08-4b50-bef3-c5a1a069d89d",
+      "name": "Pass/Review Condition"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appn1m2ehMsjzigAg",
+          "mode": "list",
+          "cachedResultName": "Book Cover Validation System",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbltQoSmXMtQOwqOf",
+          "mode": "list",
+          "cachedResultName": "Authors",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg/tbltQoSmXMtQOwqOf"
+        },
+        "filterByFormula": "={ISBN}='{{ $json.fields.ISBN }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        80
+      ],
+      "id": "d99b5467-8ab0-4706-bf1c-89f06808ff82",
+      "name": "Search records in exixting data",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yOc7c0Vuymdunqdp",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appn1m2ehMsjzigAg",
+          "mode": "list",
+          "cachedResultName": "Book Cover Validation System",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbltQoSmXMtQOwqOf",
+          "mode": "list",
+          "cachedResultName": "Authors",
+          "cachedResultUrl": "https://airtable.com/appn1m2ehMsjzigAg/tbltQoSmXMtQOwqOf"
+        },
+        "filterByFormula": "={ISBN}='{{ $json.fields.ISBN }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        -112
+      ],
+      "id": "240cea6d-0f42-4da8-afb8-6565d87f6ebc",
+      "name": "Search records in exixting_data",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yOc7c0Vuymdunqdp",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Search records in exixting data').first().json?.fields?.Email || \"praveenkumaar190@gmail.com\" }}",
+        "subject": "=Book Cover Approved – Submission  {{ $('Count_Submission').item.json.submissionNumber }}",
+        "message": "=Hello,\n\nYour book cover has successfully passed automated validation.\n\n<b>Status:</b> {{ $('Storing Data').item.json.fields.Status }}<br>\n<b>Severity:</b>{{ $('Storing Data').item.json.fields.Severity }} <br>\n<b>Confidence Score:</b> {{ $('Storing Data').item.json.fields.Confidence }}%<br>\n<b>Submission Number:</b> {{ $('Storing Data').item.json.fields[\"Submission Number\"] }}<br><br>\n\n<b>Summary:</b><br>\n{{ $('Storing Data').item.json.fields.Summary }}br><br>\n\nNo issues were detected and the cover meets the publishing requirements.\n\nRegards,<br>\nBookLeaf Publishing QA System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        -112
+      ],
+      "id": "3bc316c2-96c7-45ef-abcf-9bc4eaaafaf0",
+      "name": "Send Pass Confirmation mail",
+      "webhookId": "678648e6-96ac-4338-8c64-dbe13a464888",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wWBIqL9qpLM83lZs",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Search records in exixting data').first().json?.fields?.Email || \"praveenkumaar190@gmail.com\" }}",
+        "subject": "=Book Cover Review Required – Submission  {{ $('Count_Submission').item.json.submissionNumber }}",
+        "message": "=Hello,\n\nYour book cover has been reviewed and requires revision before approval.\n\n<b>Status:</b> {{ $('Storing Data').item.json.fields.Status }}<br>\n<b>Severity:</b>{{ $('Storing Data').item.json.fields.Severity }} <br>\n<b>Confidence Score:</b> {{ $('Storing Data').item.json.fields.Confidence }}%<br>\n<b>Submission Number:</b> {{ $('Storing Data').item.json.fields[\"Submission Number\"] }}<br><br>\n\n<b>Summary:</b><br>\n{{ $('Storing Data').item.json.fields.Summary }}br><br>\n\n<b>Issues Identified:</b><br>\n{{ $('Storing Data').item.json.fields.Issues }}<br><br>\n\n<b>Correction Instructions:</b><br>\n{{ $('Storing Data').item.json.fields[\"Correction Instructions\"] }}<br><br>\n\nPlease make the necessary corrections and upload a revised version for validation.\n\nRegards,<br>\nBookLeaf Publishing QA System",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        80
+      ],
+      "id": "4e08c587-a187-41ec-bfc3-30f240c16972",
+      "name": "Send Review mail",
+      "webhookId": "678648e6-96ac-4338-8c64-dbe13a464888",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "wWBIqL9qpLM83lZs",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const searchResults = $input.all();\n\nconst count =\n  searchResults.length === 1 &&\n  Object.keys(searchResults[0].json).length === 0\n    ? 0\n    : searchResults.length;\n\nconst originalData = $('Parse the clean text').first().json;\n\n// Default email if ISBN not found\nlet email = \"yourtestemail@gmail.com\";\n\nif (count > 0) {\n  email = searchResults[0].json.Email || email;\n}\n\nreturn [{\n  json: {\n    ...originalData,\n    email,\n    submissionNumber: count + 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        80
+      ],
+      "id": "3b1ef4e2-14c9-4649-99a9-900de6261d8e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const searchResults = $input.all();\n\nconst count =\n  searchResults.length === 1 &&\n  Object.keys(searchResults[0].json).length === 0\n    ? 0\n    : searchResults.length;\n\nconst originalData = $('Parse the clean text').first().json;\n\n// Default email if ISBN not found\nlet email = \"yourtestemail@gmail.com\";\n\nif (count > 0) {\n  email = searchResults[0].json.Email || email;\n}\n\nreturn [{\n  json: {\n    ...originalData,\n    email,\n    submissionNumber: count + 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -112
+      ],
+      "id": "8bc71504-0eaf-45b5-aa59-dc72dfd480a8",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Parse the clean text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse the clean text": {
+      "main": [
+        [
+          {
+            "node": "Filter Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Result": {
+      "main": [
+        [
+          {
+            "node": "Count_Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count_Submission": {
+      "main": [
+        [
+          {
+            "node": "Storing Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Storing Data": {
+      "main": [
+        [
+          {
+            "node": "Pass/Review Condition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass/Review Condition": {
+      "main": [
+        [
+          {
+            "node": "Search records in exixting_data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search records in exixting data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records in exixting data": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records in exixting_data": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send Review mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send Pass Confirmation mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d908479c-6207-40bc-910b-46ae0ce81ca5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1556a3adb222be058d86fa853badf44e6facb66cd7f997d68cf7ccda708cb276"
+  },
+  "id": "lngaDPRybp3YZPb0",
+  "tags": []
+}
